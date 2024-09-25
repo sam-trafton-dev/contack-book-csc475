@@ -3,11 +3,9 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.createSavedStateHandle
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonDecoder
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -58,7 +56,6 @@ class ContactViewModel(private val context: Context) : ViewModel() {
 
     private fun loadContacts() {
         try {
-
             val file = File(context.filesDir, fileName)
 
             // check if data file exists
@@ -70,6 +67,7 @@ class ContactViewModel(private val context: Context) : ViewModel() {
                 fileInputStream.close()
 
                 val json = String(buffer)
+
                 // Deserialization
                 val savedContacts: List<Contact> = Json.decodeFromString(json)
                 contacts.clear()
@@ -83,10 +81,16 @@ class ContactViewModel(private val context: Context) : ViewModel() {
             }
         } catch (e: FileNotFoundException) {
             contacts = mutableStateListOf()
+            Log.e("loadContacts", "File not found, initializing empty contact list.")
         } catch (e: IOException) {
             e.printStackTrace()
-        } catch (e: ClassNotFoundException) {
-            e.printStackTrace()
+            Log.e("loadContacts", "IOException occurred during file read.")
+        } catch (e: SerializationException) {
+            contacts = mutableStateListOf()
+            Log.e("loadContacts", "Error decoding JSON, initializing empty contact list. JSON might be corrupted.")
+        } catch (e: Exception) {
+            e.printStackTrace() // Catch any other unforeseen errors
+            Log.e("loadContacts", "Unexpected error occurred: ${e.message}")
         }
     }
 }
